@@ -24,11 +24,14 @@ const (
 )
 
 var (
-	cliEnv *string
+	cliEnv  string
+	cliPort int
 )
 
 func init() {
-	cliEnv = flag.String("env", "", `set the service rumtime environment, like 'development','test' or 'production'`)
+	flag.StringVar(&cliEnv, "env", "", `set the service rumtime environment, like 'development','test' or 'production'`)
+	flag.IntVar(&cliPort, "port", 0, `set the net server run port`)
+
 	flag.Parse()
 }
 
@@ -36,9 +39,12 @@ func init() {
 type Host struct {
 	C Context // Context
 
-	conf *config.AppConfig
+	Conf *config.AppConfig
 
-	middlewareFn []func() gin.HandlerFunc
+	endpointFn func(Context)
+
+	servicesFn    []func()                 // services, lazy loading.
+	middlewaresFn []func() gin.HandlerFunc // middlewares, lazy loading.
 }
 
 // Context host context, with Router and DbContext.
@@ -47,29 +53,38 @@ type Context struct {
 	DB     *gorm.DB
 }
 
-// ConfigureServices configure the services.
-func (h *Host) ConfigureServices() {
-
-}
-
-// Configure configure the middleware.
-func (h *Host) Configure(fn func(*Host)) {
-
-}
-
 // Run startup the service.
 func (h *Host) Run() {
-	env.SetEnv(*cliEnv) // override
+	env.SetEnv(cliEnv) // override
 
 	// config
 	config.Init()
-	h.conf = config.Conf()
+	h.Conf = config.Conf()
 
 	h.C.Router = httpd.Default()
+	// TODO: set database.
+	// TODO: add all services.
 
-	port := 1000
+	if len(h.middlewaresFn) > 0 {
+		for _, fn := range h.middlewaresFn {
+			h.C.Router.Use(fn())
+		}
+	}
+	if len(h.servicesFn) > 0 {
+		for _, fn := range h.servicesFn {
+			fn()
+		}
+	}
+
+	// startup server.
+	port := cliPort
 	if port == 0 {
-		port = defaultHostPort
+		// extract port from config. when not found in config, use default.
+		if h.Conf.App.Port > 0 {
+			port = h.Conf.App.Port
+		} else {
+			port = defaultHostPort
+		}
 	}
 
 	// h.C.Engine.Run(fmt.Sprintf(":%d", port))

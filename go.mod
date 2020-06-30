@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/gomodule/redigo v1.8.1
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.12
 	go.uber.org/zap v1.15.0

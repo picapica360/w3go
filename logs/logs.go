@@ -1,11 +1,7 @@
 package logs
 
-import "sync"
-
 var (
 	_logger Logger
-
-	once sync.Once
 )
 
 // Debug debug log
@@ -70,11 +66,9 @@ func Fatalf(format string, args ...interface{}) {
 
 // New create a logger.
 func New(fn func() Logger) {
-	once.Do(func() {
-		if fn == nil {
-			panic("[logs]: register logger is nil.")
-		}
+	if fn == nil {
+		panic("[logs]: register logger is nil.")
+	}
 
-		_logger = fn()
-	})
+	_logger = fn()
 }

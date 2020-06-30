@@ -26,7 +26,7 @@ func init() {
 	SetEnv(os.Getenv("PICAPICA_ENV"))
 }
 
-// SetEnv set environment.
+// SetEnv set environment while e is not zero.
 func SetEnv(e string) {
 	if len(e) > 0 {
 		env = e
