@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/picapica360/w3go/database/orm"
 )
 
 // AddService add a service to server.
@@ -23,9 +24,9 @@ func (h *Host) AddEndpoint(fn func(c Context)) {
 	h.endpointFn = fn
 }
 
-// AddDatabase add database to context.
-func (h *Host) AddDatabase() {
-
+// AddDatabase add a database to context.
+func (h *Host) AddDatabase(name, conf string) {
+	h.C.databases[name] = orm.NewDBString(conf)
 }
 
 // AddPProf only listening for pprof

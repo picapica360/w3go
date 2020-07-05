@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,17 @@ type Host struct {
 type Context struct {
 	Router *gin.Engine
 	DB     *gorm.DB
+
+	databases map[string]*gorm.DB
+}
+
+// GetDB get the special database from context.
+// It will return nil if not exists.
+func (c *Context) GetDB(name string) *gorm.DB {
+	if k, ok := c.databases[name]; ok {
+		return k
+	}
+	return nil
 }
 
 // Run startup the service.
@@ -63,6 +75,14 @@ func (h *Host) Run() {
 
 	h.C.Router = httpd.Default()
 	// TODO: set database.
+	h.C.databases = make(map[string]*gorm.DB)
+	defer func() {
+		if len(h.C.databases) > 0 {
+			for _, db := range h.C.databases {
+				db.Close()
+			}
+		}
+	}()
 	// TODO: add all services.
 
 	if len(h.middlewaresFn) > 0 {
@@ -74,6 +94,9 @@ func (h *Host) Run() {
 		for _, fn := range h.servicesFn {
 			fn()
 		}
+	}
+	if h.endpointFn != nil {
+		h.endpointFn(h.C)
 	}
 
 	// startup server.
@@ -107,7 +130,7 @@ func (h *Host) Run() {
 
 func shutdown(srv *http.Server) {
 	quit := make(chan os.Signal)
-	signal.Notify(quit, os.Interrupt)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	sig := <-quit
 	logs.Infof("[server] get a signal %s, stop the process", sig.String())
 
